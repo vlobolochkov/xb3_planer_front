@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Привычки</title>
+  <title>Планер</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -36,734 +36,340 @@
       }
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding-bottom: 90px;
+      padding-bottom: 80px;
     }
 
-    /* Loading screen */
+    /* ── Loading ── */
     .loading-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 999;
-      transition: opacity 0.3s;
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; z-index: 999; transition: opacity 0.3s;
     }
-
-    .loading-screen.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
+    .loading-screen.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--accent);
       animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--muted); }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .loading-text {
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    /* Error banner */
+    /* ── Error banner ── */
     .error-banner {
-      display: none;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: var(--radius-sm);
-      padding: 12px 16px;
-      margin: 12px 16px;
-      font-size: 13px;
-      color: var(--danger);
-      text-align: center;
+      display: none; background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      margin: 12px 16px; font-size: 13px; color: var(--danger); text-align: center;
     }
+    .error-banner.visible { display: block; }
 
-    .error-banner.visible {
-      display: block;
-    }
-
-    /* Sync indicator */
+    /* ── Sync dot ── */
     .sync-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--success);
-      display: inline-block;
-      margin-left: 6px;
-      vertical-align: middle;
-      transition: background 0.3s;
+      width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+      display: inline-block; margin-left: 6px; vertical-align: middle; transition: background 0.3s;
     }
+    .sync-dot.syncing { background: var(--streak); animation: pulse 1s infinite; }
+    .sync-dot.error { background: var(--danger); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    .sync-dot.syncing {
-      background: var(--streak);
-      animation: pulse 1s infinite;
-    }
-
-    .sync-dot.error {
-      background: var(--danger);
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.4
-      }
-    }
-
-    /* Header */
+    /* ── Header ── */
     .header {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 20px 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100;
     }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .app-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .date-badge { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .progress-bar-wrap { background: var(--border); border-radius: 99px; height: 4px; margin-top: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 99px; transition: width 0.4s; }
+    .progress-text { font-size: 12px; color: var(--muted); margin-top: 5px; text-align: right; }
 
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
+    /* ── Content ── */
+    .content { padding: 0 16px; }
 
-    .app-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
-    .date-badge {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    .progress-bar-wrap {
-      background: var(--border);
-      border-radius: 99px;
-      height: 4px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-      border-radius: 99px;
-      transition: width 0.4s;
-    }
-
-    .progress-text {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 5px;
-      text-align: right;
-    }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 6px;
-      padding: 12px 20px;
-      background: var(--bg);
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 8px 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--card);
-      color: var(--muted);
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-      box-shadow: 0 2px 8px rgba(79, 142, 247, .3);
-    }
-
-    .content {
-      padding: 0 16px;
-    }
-
-    /* Habit card */
+    /* ── Habit card ── */
     .habit-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      margin-bottom: 10px;
-      overflow: hidden;
-      animation: slideIn 0.22s ease;
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      margin-bottom: 10px; overflow: hidden; animation: slideIn 0.22s ease;
     }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(6px);
-      }
-
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-
-    .habit-main {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 16px;
-    }
-
+    @keyframes slideIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .habit-main { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
     .habit-emoji {
-      font-size: 26px;
-      width: 46px;
-      height: 46px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 12px;
-      background: var(--accent-light);
-      flex-shrink: 0;
+      font-size: 26px; width: 46px; height: 46px; display: flex; align-items: center;
+      justify-content: center; border-radius: 12px; background: var(--accent-light); flex-shrink: 0;
     }
-
-    .habit-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .habit-name {
-      font-size: 15px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .habit-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 3px;
-    }
-
+    .habit-info { flex: 1; min-width: 0; }
+    .habit-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .habit-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
     .streak-badge {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--streak);
-      background: var(--streak-light);
-      padding: 2px 7px;
-      border-radius: 99px;
+      display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600;
+      color: var(--streak); background: var(--streak-light); padding: 2px 7px; border-radius: 99px;
     }
-
-    .days-label {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
+    .days-label { font-size: 12px; color: var(--muted); }
     .check-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      flex-shrink: 0;
-      font-size: 18px;
-      color: #fff;
+      width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border);
+      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0; font-size: 18px; color: #fff;
     }
+    .check-btn.done { background: var(--success); border-color: var(--success); animation: pop 0.22s ease; }
+    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
 
-    .check-btn.done {
-      background: var(--success);
-      border-color: var(--success);
-      animation: pop 0.22s ease;
-    }
+    /* ── Week strip ── */
+    .week-strip { display: flex; padding: 0 14px 12px; gap: 3px; }
+    .wday { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .wday-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+    .wday-cell { width: 100%; height: 20px; border-radius: 5px; background: var(--border); display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .wday-cell.done { background: var(--success); }
+    .wday-cell.today-empty { background: var(--accent-light); border: 1.5px dashed var(--accent); }
+    .wday-cell.today-done { background: var(--success); border: 2px solid var(--accent-dark); }
+    .wday-cell.done::after, .wday-cell.today-done::after { content: '✓'; color: #fff; font-size: 9px; font-weight: 800; }
 
-    @keyframes pop {
-      0% {
-        transform: scale(1)
-      }
+    /* ── Delete row (shared) ── */
+    .delete-row { border-top: 1px solid var(--border); }
+    .delete-initial { display: flex; justify-content: flex-end; }
+    .btn-del-trigger { padding: 8px 16px; font-size: 12px; font-weight: 500; color: var(--danger); background: transparent; border: none; cursor: pointer; font-family: inherit; }
+    .delete-confirm { display: none; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 10px; animation: slideIn 0.15s ease; background: #fff0f0; }
+    @media (prefers-color-scheme: dark) { .delete-confirm { background: #2a1515; } }
+    .delete-confirm.visible { display: flex; }
+    .del-confirm-text { font-size: 13px; color: var(--danger); font-weight: 500; }
+    .del-btns { display: flex; gap: 8px; }
+    .del-yes { padding: 6px 14px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+    .del-no { padding: 6px 14px; border-radius: 8px; background: var(--border); color: var(--text); font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
 
-      50% {
-        transform: scale(1.25)
-      }
-
-      100% {
-        transform: scale(1)
-      }
-    }
-
-    /* Week calendar */
-    .week-strip {
-      display: flex;
-      padding: 0 14px 12px;
-      gap: 3px;
-    }
-
-    .wday {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .wday-label {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .wday-cell {
-      width: 100%;
-      height: 20px;
-      border-radius: 5px;
-      background: var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-
-    .wday-cell.done {
-      background: var(--success);
-    }
-
-    .wday-cell.today-empty {
-      background: var(--accent-light);
-      border: 1.5px dashed var(--accent);
-    }
-
-    .wday-cell.today-done {
-      background: var(--success);
-      border: 2px solid var(--accent-dark);
-    }
-
-    .wday-cell.done::after,
-    .wday-cell.today-done::after {
-      content: '✓';
-      color: #fff;
-      font-size: 9px;
-      font-weight: 800;
-    }
-
-    /* Delete row */
-    .delete-row {
-      border-top: 1px solid var(--border);
-    }
-
-    .delete-initial {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .btn-del-trigger {
-      padding: 8px 16px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--danger);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    .delete-confirm {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      gap: 10px;
-      animation: slideIn 0.15s ease;
-      background: #fff0f0;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .delete-confirm {
-        background: #2a1515;
-      }
-    }
-
-    .delete-confirm.visible {
-      display: flex;
-    }
-
-    .del-confirm-text {
-      font-size: 13px;
-      color: var(--danger);
-      font-weight: 500;
-    }
-
-    .del-btns {
-      display: flex;
-      gap: 8px;
-    }
-
-    .del-yes {
-      padding: 6px 14px;
-      border-radius: 8px;
-      background: var(--danger);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    .del-no {
-      padding: 6px 14px;
-      border-radius: 8px;
-      background: var(--border);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    /* Stats */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      margin-top: 4px;
-      line-height: 1;
-    }
-
-    .stat-sub {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-
+    /* ── Stats ── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
+    .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; line-height: 1; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .habit-stat-row {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
     }
+    .hsrow-emoji { font-size: 22px; }
+    .hsrow-info { flex: 1; }
+    .hsrow-name { font-size: 14px; font-weight: 600; }
+    .hsrow-sub { font-size: 12px; color: var(--muted); }
+    .hsrow-bar-wrap { width: 80px; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+    .hsrow-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 99px; }
+    .hsrow-pct { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 36px; text-align: right; }
+    .stats-section-title { font-size: 16px; font-weight: 700; margin: 18px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 
-    .hsrow-emoji {
-      font-size: 22px;
-    }
-
-    .hsrow-info {
-      flex: 1;
-    }
-
-    .hsrow-name {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .hsrow-sub {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .hsrow-bar-wrap {
-      width: 80px;
-      height: 6px;
-      background: var(--border);
-      border-radius: 99px;
-      overflow: hidden;
-      margin-top: 4px;
-    }
-
-    .hsrow-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-      border-radius: 99px;
-    }
-
-    .hsrow-pct {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent);
-      min-width: 36px;
-      text-align: right;
-    }
-
-    /* FAB */
+    /* ── FAB ── */
     .fab {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-      color: #fff;
-      font-size: 28px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(79, 142, 247, .4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s;
-      z-index: 200;
+      position: fixed; bottom: 78px; right: 20px; width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font-size: 28px;
+      border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(79,142,247,.4);
+      display: flex; align-items: center; justify-content: center; transition: transform 0.2s; z-index: 200;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 62px;
+      background: var(--card); border-top: 1px solid var(--border);
+      display: flex; align-items: stretch; z-index: 200;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; border: none; background: transparent; cursor: pointer; color: var(--muted);
+      transition: color 0.2s; font-family: inherit; position: relative;
+    }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn.active::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 2.5px; background: var(--accent); border-radius: 0 0 3px 3px;
+    }
+    .nav-icon { font-size: 21px; line-height: 1; }
+    .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+
+    /* ── Task card ── */
+    .task-card {
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      margin-bottom: 10px; overflow: hidden; animation: slideIn 0.22s ease;
+      border-left: 4px solid transparent;
+    }
+    .task-card.prio-high  { border-left-color: var(--danger); }
+    .task-card.prio-medium { border-left-color: var(--streak); }
+    .task-card.prio-low   { border-left-color: var(--success); }
+    .task-card.task-done  { opacity: 0.65; }
+    .task-main { display: flex; align-items: flex-start; gap: 12px; padding: 14px 12px 14px 14px; }
+    .task-check {
+      width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
+      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0; margin-top: 1px; font-size: 11px; color: #fff; font-family: inherit;
+    }
+    .task-check.done { background: var(--success); border-color: var(--success); animation: pop 0.22s ease; }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .task-title.crossed { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+    .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; }
+    .task-desc { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+    .task-date { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .task-date.overdue { color: var(--danger); font-weight: 700; }
+    .task-del-btn { padding: 2px 6px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; flex-shrink: 0; line-height: 1; font-family: inherit; margin-top: -2px; }
+
+    /* Priority pill */
+    .prio-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .prio-pill.high   { background: #fee2e2; color: #dc2626; }
+    .prio-pill.medium { background: #fef3c7; color: #d97706; }
+    .prio-pill.low    { background: #dcfce7; color: #16a34a; }
+    @media (prefers-color-scheme: dark) {
+      .prio-pill.high   { background: #3b1212; color: #f87171; }
+      .prio-pill.medium { background: #2d1f08; color: #fbbf24; }
+      .prio-pill.low    { background: #0d2918; color: #4ade80; }
     }
 
-    .fab:active {
-      transform: scale(0.92);
+    /* Filter chips */
+    .chips-row { display: flex; gap: 6px; padding: 12px 0 4px; overflow-x: auto; scrollbar-width: none; }
+    .chips-row::-webkit-scrollbar { display: none; }
+    .chip {
+      padding: 6px 16px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--card);
+      font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s;
+      white-space: nowrap; font-family: inherit;
     }
+    .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Priority selector (modal) */
+    .prio-select { display: flex; gap: 8px; margin-bottom: 16px; }
+    .prio-option {
+      flex: 1; padding: 10px 4px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+      background: var(--bg); font-size: 12px; font-weight: 700; cursor: pointer; text-align: center;
+      transition: all 0.15s; font-family: inherit; color: var(--muted);
+    }
+    .prio-option.sel-low    { border-color: #16a34a; color: #16a34a; background: #dcfce7; }
+    .prio-option.sel-medium { border-color: #d97706; color: #d97706; background: #fef3c7; }
+    .prio-option.sel-high   { border-color: #dc2626; color: #dc2626; background: #fee2e2; }
+    @media (prefers-color-scheme: dark) {
+      .prio-option.sel-low    { background: #0d2918; }
+      .prio-option.sel-medium { background: #2d1f08; }
+      .prio-option.sel-high   { background: #3b1212; }
+    }
+
+    /* Toggle */
+    .settings-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 10px; }
+    .toggle-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+    .toggle-info { flex: 1; }
+    .toggle-title { font-size: 14px; font-weight: 600; }
+    .toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle {
+      width: 46px; height: 26px; border-radius: 13px; background: var(--border);
+      position: relative; cursor: pointer; transition: background 0.2s; border: none; flex-shrink: 0;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle::after {
+      content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+      background: #fff; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+    .settings-note { text-align: center; padding: 0 16px 20px; font-size: 12px; color: var(--muted); }
 
     /* Modal */
     .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .45);
-      z-index: 300;
-      display: flex;
-      align-items: flex-end;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s;
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 300;
+      display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s;
     }
-
-    .overlay.open {
-      opacity: 1;
-      pointer-events: all;
-    }
-
+    .overlay.open { opacity: 1; pointer-events: all; }
     .modal {
-      background: var(--card);
-      border-radius: 24px 24px 0 0;
-      width: 100%;
-      padding: 20px 20px 40px;
-      transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(.4, 0, .2, 1);
+      background: var(--card); border-radius: 24px 24px 0 0; width: 100%; padding: 20px 20px 40px;
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); max-height: 92vh; overflow-y: auto;
     }
-
-    .overlay.open .modal {
-      transform: none;
-    }
-
-    .modal-handle {
-      width: 40px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 99px;
-      margin: 0 auto 20px;
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-
-    .input-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      margin-bottom: 6px;
-    }
-
+    .overlay.open .modal { transform: none; }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+    .input-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
     .text-input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-      margin-bottom: 14px;
-      font-family: inherit;
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg); color: var(--text); font-size: 15px; outline: none;
+      transition: border-color 0.2s; margin-bottom: 14px; font-family: inherit;
     }
-
-    .text-input:focus {
-      border-color: var(--accent);
+    .text-input:focus { border-color: var(--accent); }
+    .text-area {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg); color: var(--text); font-size: 15px; outline: none;
+      transition: border-color 0.2s; margin-bottom: 14px; font-family: inherit;
+      resize: none; min-height: 80px; line-height: 1.45;
     }
-
-    .emoji-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 18px;
+    .text-area:focus { border-color: var(--accent); }
+    .date-input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg); color: var(--text); font-size: 15px; outline: none;
+      transition: border-color 0.2s; margin-bottom: 14px; font-family: inherit;
     }
-
-    .emoji-pick {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      border: 2px solid var(--border);
-      background: var(--bg);
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-
-    .emoji-pick:active {
-      transform: scale(0.9);
-    }
-
-    .emoji-pick.selected {
-      border-color: var(--accent);
-      background: var(--accent-light);
-    }
-
+    .date-input:focus { border-color: var(--accent); }
+    .emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .emoji-pick { width: 42px; height: 42px; border-radius: 10px; border: 2px solid var(--border); background: var(--bg); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .emoji-pick:active { transform: scale(0.9); }
+    .emoji-pick.selected { border-color: var(--accent); background: var(--accent-light); }
     .save-btn {
-      width: 100%;
-      padding: 14px;
-      border-radius: var(--radius);
-      border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s;
-      font-family: inherit;
+      width: 100%; padding: 14px; border-radius: var(--radius); border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.15s; font-family: inherit;
     }
-
-    .save-btn:active {
-      transform: scale(0.98);
-    }
+    .save-btn:active { transform: scale(0.98); }
 
     /* Misc */
-    .empty {
-      text-align: center;
-      padding: 48px 20px;
-    }
-
-    .empty-icon {
-      font-size: 52px;
-      margin-bottom: 12px;
-    }
-
-    .empty-text {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .empty-sub {
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    .section-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-      font-weight: 700;
-      margin: 14px 0 8px;
-    }
+    .empty { text-align: center; padding: 40px 20px; }
+    .empty-icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-text { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .empty-sub { font-size: 14px; color: var(--muted); }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; margin: 14px 0 8px; }
   </style>
 </head>
 
 <body>
 
-  <!-- Экран загрузки -->
+  <!-- Загрузка -->
   <div class="loading-screen" id="loadingScreen">
     <div class="loading-spinner"></div>
     <div class="loading-text">Загрузка данных…</div>
   </div>
 
+  <!-- Шапка -->
   <div class="header">
     <div class="header-top">
-      <div class="app-title">✦ Привычки <span class="sync-dot" id="syncDot"></span></div>
+      <div class="app-title"><span id="headerTitleText">✦ Привычки</span><span class="sync-dot" id="syncDot"></span></div>
       <div class="date-badge" id="dateBadge"></div>
     </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    <div id="progressWrap">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-text" id="progressText">0 из 0 выполнено</div>
     </div>
-    <div class="progress-text" id="progressText">0 из 0 выполнено</div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">Сегодня</button>
-    <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">Статистика</button>
   </div>
 
   <div class="error-banner" id="errorBanner">Ошибка синхронизации. Проверьте соединение.</div>
   <div class="content" id="mainContent"></div>
 
-  <button class="fab" id="fabBtn" onclick="openModal()">+</button>
+  <!-- FAB -->
+  <button class="fab" id="fabBtn" onclick="fabClick()">+</button>
 
-  <div class="overlay" id="overlay" onclick="closeModalOnBg(event)">
+  <!-- Нижняя навигация -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-habits" onclick="switchSection('habits')">
+      <span class="nav-icon">🏃</span>
+      <span class="nav-label">Привычки</span>
+    </button>
+    <button class="nav-btn" id="nav-tasks" onclick="switchSection('tasks')">
+      <span class="nav-icon">✅</span>
+      <span class="nav-label">Дела</span>
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="switchSection('stats')">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Статистика</span>
+    </button>
+  </nav>
+
+  <!-- Модал: привычка -->
+  <div class="overlay" id="habitOverlay" onclick="closeHabitModalOnBg(event)">
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-title">Новая привычка</div>
@@ -775,93 +381,109 @@
     </div>
   </div>
 
+  <!-- Модал: дело -->
+  <div class="overlay" id="taskOverlay" onclick="closeTaskModalOnBg(event)">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Новое дело</div>
+      <div class="input-label">Название</div>
+      <input class="text-input" id="taskTitle" type="text" placeholder="Что нужно сделать?" maxlength="60">
+      <div class="input-label">Описание (необязательно)</div>
+      <textarea class="text-area" id="taskDesc" placeholder="Подробности…" maxlength="200"></textarea>
+      <div class="input-label">Приоритет</div>
+      <div class="prio-select" id="prioSelect">
+        <button class="prio-option" data-p="low"    onclick="selectPrio('low')">🟢 Низкий</button>
+        <button class="prio-option sel-medium" data-p="medium" onclick="selectPrio('medium')">🟡 Средний</button>
+        <button class="prio-option" data-p="high"   onclick="selectPrio('high')">🔴 Высокий</button>
+      </div>
+      <div class="input-label">Срок выполнения (необязательно)</div>
+      <input class="date-input" id="taskDueDate" type="date">
+      <button class="save-btn" onclick="saveTask()">Добавить дело</button>
+    </div>
+  </div>
+
   <script>
     // ════════════════════════════════════════════
-    // КОНФИГ — замените на ваш URL после деплоя
+    // КОНФИГ
     // ════════════════════════════════════════════
-    const API_URL = "https://xb3planer-production.up.railway.app"
+    // DEV: в консоли браузера:
+    //   localStorage.setItem('_devApiUrl', 'http://localhost:8000')
+    //   localStorage.setItem('_devInitData', 'dev')
+    const API_URL = localStorage.getItem('_devApiUrl') || "https://xb3planer-production.up.railway.app"
 
     // ────────────────────────────────────────────
     // Telegram WebApp
     // ────────────────────────────────────────────
     const tg = window.Telegram?.WebApp
     if (tg) { tg.ready(); tg.expand() }
-
-    // initData — строка для авторизации на бэкенде
-    // В реальном Telegram она заполняется автоматически.
-    // Для локального тестирования подставьте тестовую строку.
-    const INIT_DATA = tg?.initData || ""
+    const INIT_DATA = tg?.initData || localStorage.getItem('_devInitData') || ""
 
     // ────────────────────────────────────────────
     // Состояние
     // ────────────────────────────────────────────
-    const EMOJIS = ['📚', '🏃', '💧', '🧘', '🎯', '💪', '🥗', '😴', '✍️', '🎨', '🎸', '🧹', '💊', '🌿', '🐕', '🚴', '🧠', '🌅', '🫁', '🏊']
-    let state = { habits: [], completions: {} }
-    let saveTimer = null   // дебаунс — не шлём запрос на каждый тап
+    const EMOJIS = ['📚','🏃','💧','🧘','🎯','💪','🥗','😴','✍️','🎨','🎸','🧹','💊','🌿','🐕','🚴','🧠','🌅','🫁','🏊']
+    let state = { habits: [], completions: {}, tasks: [], notificationsEnabled: false }
+    let saveTimer = null
+    let currentSection = 'habits'
+    let taskFilter = 'all'
+    let selectedEmoji = EMOJIS[0]
+    let selectedPriority = 'medium'
 
     // ────────────────────────────────────────────
     // API
     // ────────────────────────────────────────────
     function setSyncState(s) {
-      // s: 'ok' | 'syncing' | 'error'
       const dot = document.getElementById('syncDot')
+      if (!dot) return
       dot.className = 'sync-dot' + (s === 'syncing' ? ' syncing' : s === 'error' ? ' error' : '')
       document.getElementById('errorBanner').classList.toggle('visible', s === 'error')
     }
 
     async function loadFromServer() {
       if (!INIT_DATA) {
-        // Открыто не в Telegram (браузер/превью) — работаем без сервера
-        console.warn("initData пустой — режим превью без сервера")
-        hideLoading()
-        render()
-        return
+        console.warn("initData пустой — режим превью")
+        hideLoading(); render(); return
       }
       try {
         setSyncState('syncing')
         const res = await fetch(`${API_URL}/load`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ init_data: INIT_DATA })
         })
         if (!res.ok) throw new Error(res.status)
         const json = await res.json()
-        state = json.data || { habits: [], completions: {} }
+        const d = json.data || {}
+        state.habits               = d.habits               || []
+        state.completions          = d.completions          || {}
+        state.tasks                = d.tasks                || []
+        state.notificationsEnabled = d.notificationsEnabled || false
         setSyncState('ok')
       } catch (e) {
-        console.error("load error", e)
-        setSyncState('error')
+        console.error("load error", e); setSyncState('error')
       } finally {
-        hideLoading()
-        render()
+        hideLoading(); render()
       }
     }
 
     async function saveToServer() {
-      if (!INIT_DATA) return   // превью-режим
+      if (!INIT_DATA) return
       try {
         setSyncState('syncing')
         const res = await fetch(`${API_URL}/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ init_data: INIT_DATA, data: state })
         })
         if (!res.ok) throw new Error(res.status)
         setSyncState('ok')
       } catch (e) {
-        console.error("save error", e)
-        setSyncState('error')
+        console.error("save error", e); setSyncState('error')
       }
     }
 
-    // Дебаунс: сохраняем через 800 мс после последнего изменения
-    function scheduleSave() {
-      clearTimeout(saveTimer)
-      saveTimer = setTimeout(saveToServer, 800)
-    }
+    function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToServer, 800) }
 
     // ────────────────────────────────────────────
-    // Загрузочный экран
+    // Загрузка
     // ────────────────────────────────────────────
     function hideLoading() {
       const s = document.getElementById('loadingScreen')
@@ -870,46 +492,352 @@
     }
 
     // ────────────────────────────────────────────
-    // Дата
+    // Дата / утилиты
     // ────────────────────────────────────────────
     function todayKey() { return dateKey(0) }
     function dateKey(offset) {
       const d = new Date(); d.setDate(d.getDate() + offset)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
     }
     function isComplete(hid, day) { return !!(state.completions[day]?.[hid]) }
 
+    function formatDate(iso) {
+      if (!iso) return ''
+      if (iso === todayKey())  return 'Сегодня'
+      if (iso === dateKey(1))  return 'Завтра'
+      if (iso === dateKey(-1)) return 'Вчера'
+      const d = new Date(iso + 'T00:00:00')
+      const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек']
+      const sameYear = d.getFullYear() === new Date().getFullYear()
+      return `${d.getDate()} ${months[d.getMonth()]}${sameYear ? '' : ' ' + d.getFullYear()}`
+    }
+    function isOverdue(dueDate) { return !!dueDate && dueDate < todayKey() }
+
+    function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
+    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+    function pluralDays(n) {
+      if (n % 100 >= 11 && n % 100 <= 14) return 'дней'
+      const r = n % 10; return r===1?'день':r>=2&&r<=4?'дня':'дней'
+    }
+    function pluralTasks(n) {
+      if (n % 100 >= 11 && n % 100 <= 14) return 'дел'
+      const r = n % 10; return r===1?'дело':r>=2&&r<=4?'дела':'дел'
+    }
+
     // ────────────────────────────────────────────
-    // Действия
+    // Навигация
+    // ────────────────────────────────────────────
+    const SECTION_TITLES = { habits: '✦ Привычки', tasks: '✅ Дела', stats: '📊 Статистика' }
+
+    function switchSection(s) {
+      currentSection = s
+      ;['habits','tasks','stats'].forEach(n =>
+        document.getElementById(`nav-${n}`).classList.toggle('active', n === s)
+      )
+      document.getElementById('fabBtn').style.display = s === 'stats' ? 'none' : 'flex'
+      document.getElementById('headerTitleText').textContent = SECTION_TITLES[s]
+      document.getElementById('progressWrap').style.display = s === 'habits' ? '' : 'none'
+      render()
+    }
+
+    function fabClick() {
+      if (currentSection === 'tasks') openTaskModal()
+      else openHabitModal()
+    }
+
+    // ────────────────────────────────────────────
+    // Рендер
+    // ────────────────────────────────────────────
+    function render() {
+      updateHeader()
+      if (currentSection === 'habits') renderHabits()
+      else if (currentSection === 'tasks') renderTasks()
+      else renderStats()
+    }
+
+    const DAY_SHORT = ['вс','пн','вт','ср','чт','пт','сб']
+    const MONTHS_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек']
+
+    function updateHeader() {
+      const d = new Date()
+      document.getElementById('dateBadge').textContent = `${DAY_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+      if (currentSection === 'habits') {
+        const total = state.habits.length
+        const done  = state.habits.filter(h => isComplete(h.id, todayKey())).length
+        const pct   = total ? Math.round(done/total*100) : 0
+        document.getElementById('progressFill').style.width = pct + '%'
+        document.getElementById('progressText').textContent = `${done} из ${total} выполнено`
+      }
+    }
+
+    // ── Привычки ──
+    function renderHabits() {
+      const c = document.getElementById('mainContent')
+      if (!state.habits.length) {
+        c.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div><div class="empty-text">Нет привычек</div><div class="empty-sub">Нажмите + чтобы добавить первую привычку</div></div>`
+        return
+      }
+      const today   = todayKey()
+      const pending = state.habits.filter(h => !isComplete(h.id, today))
+      const done    = state.habits.filter(h =>  isComplete(h.id, today))
+      let html = ''
+      if (pending.length) html += `<div class="section-label">Осталось ${pending.length}</div>` + pending.map(habitCard).join('')
+      if (done.length)    html += `<div class="section-label">Выполнено ✓</div>` + done.map(habitCard).join('')
+      c.innerHTML = html
+    }
+
+    function habitCard(h) {
+      const today    = todayKey()
+      const doneToday = isComplete(h.id, today)
+      const streak   = getStreak(h.id)
+      const total    = getTotalDays(h.id)
+      let strip = ''
+      for (let i = 6; i >= 0; i--) {
+        const day = dateKey(-i)
+        const d = new Date(); d.setDate(d.getDate() - i)
+        const isToday = i === 0, done = isComplete(h.id, day)
+        const cls = isToday ? (done ? 'today-done' : 'today-empty') : (done ? 'done' : '')
+        strip += `<div class="wday"><div class="wday-label">${DAY_SHORT[d.getDay()]}</div><div class="wday-cell ${cls}"></div></div>`
+      }
+      return `<div class="habit-card">
+  <div class="habit-main">
+    <div class="habit-emoji">${h.emoji}</div>
+    <div class="habit-info">
+      <div class="habit-name">${escHtml(h.name)}</div>
+      <div class="habit-meta">
+        ${streak > 0 ? `<div class="streak-badge">🔥 ${streak}</div>` : ''}
+        <div class="days-label">${total} ${pluralDays(total)} всего</div>
+      </div>
+    </div>
+    <button class="check-btn ${doneToday ? 'done' : ''}" onclick="toggleToday('${h.id}')">${doneToday ? '✓' : ''}</button>
+  </div>
+  <div class="week-strip">${strip}</div>
+  <div class="delete-row">
+    <div class="delete-initial"><button class="btn-del-trigger" onclick="askDelete('${h.id}')">🗑 Удалить</button></div>
+    <div class="delete-confirm" data-hid="${h.id}">
+      <div class="del-confirm-text">Удалить привычку?</div>
+      <div class="del-btns">
+        <button class="del-no" onclick="cancelDelete('${h.id}')">Нет</button>
+        <button class="del-yes" onclick="confirmDelete('${h.id}')">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>`
+    }
+
+    // ── Дела ──
+    function renderTasks() {
+      const c = document.getElementById('mainContent')
+      const allTasks = state.tasks
+      const counts = {
+        all:    allTasks.length,
+        active: allTasks.filter(t => !t.done).length,
+        done:   allTasks.filter(t =>  t.done).length,
+      }
+      const PRIOORDER = { high: 0, medium: 1, low: 2 }
+      let tasks = taskFilter === 'active' ? allTasks.filter(t => !t.done)
+                : taskFilter === 'done'   ? allTasks.filter(t =>  t.done)
+                : [...allTasks]
+      tasks = tasks.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1
+        // active: overdue first, then by due date, then by priority
+        if (!a.done) {
+          const ao = isOverdue(a.dueDate), bo = isOverdue(b.dueDate)
+          if (ao !== bo) return ao ? -1 : 1
+          if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
+          if (a.dueDate && !b.dueDate) return -1
+          if (!a.dueDate && b.dueDate) return 1
+        }
+        return PRIOORDER[a.priority] - PRIOORDER[b.priority]
+      })
+
+      let html = `<div class="chips-row">
+    <button class="chip ${taskFilter==='all'?'active':''}"    onclick="setTaskFilter('all')">Все (${counts.all})</button>
+    <button class="chip ${taskFilter==='active'?'active':''}" onclick="setTaskFilter('active')">Активные (${counts.active})</button>
+    <button class="chip ${taskFilter==='done'?'active':''}"   onclick="setTaskFilter('done')">Выполнено (${counts.done})</button>
+  </div>`
+
+      if (!tasks.length) {
+        const icon = taskFilter==='done' ? '📋' : taskFilter==='active' ? '🎉' : '✅'
+        const msg  = taskFilter==='done' ? 'Нет выполненных дел' : taskFilter==='active' ? 'Все дела выполнены!' : 'Нет дел'
+        const sub  = taskFilter==='all'  ? 'Нажмите + чтобы добавить первое дело' : ''
+        html += `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-text">${msg}</div><div class="empty-sub">${sub}</div></div>`
+        c.innerHTML = html; return
+      }
+      html += tasks.map(taskCard).join('')
+      c.innerHTML = html
+    }
+
+    function taskCard(t) {
+      const overdue = !t.done && isOverdue(t.dueDate)
+      const dateStr = t.dueDate ? formatDate(t.dueDate) : ''
+      const PRIO_LABELS = { high: 'Высокий', medium: 'Средний', low: 'Низкий' }
+      return `<div class="task-card prio-${t.priority}${t.done ? ' task-done' : ''}">
+  <div class="task-main">
+    <button class="task-check ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</button>
+    <div class="task-body">
+      <div class="task-title ${t.done?'crossed':''}">${escHtml(t.title)}</div>
+      <div class="task-meta">
+        <span class="prio-pill ${t.priority}">${PRIO_LABELS[t.priority]}</span>
+        ${dateStr ? `<span class="task-date ${overdue?'overdue':''}">${overdue?'⚠ ':'📅 '}${escHtml(dateStr)}</span>` : ''}
+      </div>
+      ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
+    </div>
+    <button class="task-del-btn" onclick="askDeleteTask('${t.id}')">×</button>
+  </div>
+  <div class="delete-row">
+    <div class="delete-confirm" data-tid="${t.id}">
+      <div class="del-confirm-text">Удалить дело?</div>
+      <div class="del-btns">
+        <button class="del-no"  onclick="cancelDeleteTask('${t.id}')">Нет</button>
+        <button class="del-yes" onclick="confirmDeleteTask('${t.id}')">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>`
+    }
+
+    // ── Статистика ──
+    function renderStats() {
+      const c = document.getElementById('mainContent')
+      let html = ''
+
+      // Привычки
+      if (state.habits.length) {
+        const today    = todayKey()
+        const todayDone = state.habits.filter(h => isComplete(h.id, today)).length
+        const best     = Math.max(0, ...state.habits.map(h => getStreak(h.id)))
+        const allTime  = Object.values(state.completions).reduce((s, d) => s + Object.values(d).filter(Boolean).length, 0)
+        html += `<div class="stats-section-title">🏃 Привычки</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value">${todayDone}/${state.habits.length}</div><div class="stat-sub">привычек</div></div>
+  <div class="stat-card"><div class="stat-label">Лучшая серия</div><div class="stat-value">🔥${best}</div><div class="stat-sub">${pluralDays(best)} подряд</div></div>
+  <div class="stat-card"><div class="stat-label">Всего выполнено</div><div class="stat-value">${allTime}</div><div class="stat-sub">раз</div></div>
+  <div class="stat-card"><div class="stat-label">Привычек</div><div class="stat-value">${state.habits.length}</div><div class="stat-sub">активных</div></div>
+</div><div class="section-label">Прогресс по привычкам</div>`
+        html += [...state.habits].sort((a,b) => getCompletionRate(b.id)-getCompletionRate(a.id)).map(h => {
+          const pct = getCompletionRate(h.id)
+          return `<div class="habit-stat-row">
+  <div class="hsrow-emoji">${h.emoji}</div>
+  <div class="hsrow-info">
+    <div class="hsrow-name">${escHtml(h.name)}</div>
+    <div class="hsrow-sub">🔥${getStreak(h.id)} серия · ${getTotalDays(h.id)} ${pluralDays(getTotalDays(h.id))}</div>
+    <div class="hsrow-bar-wrap"><div class="hsrow-bar-fill" style="width:${pct}%"></div></div>
+  </div>
+  <div class="hsrow-pct">${pct}%</div>
+</div>`
+        }).join('')
+      }
+
+      // Дела
+      if (state.tasks.length) {
+        const total    = state.tasks.length
+        const done     = state.tasks.filter(t => t.done).length
+        const active   = total - done
+        const overdue  = state.tasks.filter(t => !t.done && isOverdue(t.dueDate)).length
+        const weekAgo  = dateKey(-7)
+        const doneWeek = state.tasks.filter(t => t.done && t.doneAt && t.doneAt.slice(0,10) >= weekAgo).length
+        const highPend = state.tasks.filter(t => !t.done && t.priority === 'high')
+
+        html += `<div class="stats-section-title">✅ Дела</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value">${active}</div><div class="stat-sub">из ${total} всего</div></div>
+  <div class="stat-card"><div class="stat-label">Выполнено</div><div class="stat-value">${done}</div><div class="stat-sub">всего</div></div>
+  <div class="stat-card"><div class="stat-label">Просрочено</div><div class="stat-value" style="${overdue>0?'color:var(--danger)':''}">${overdue}</div><div class="stat-sub">дел</div></div>
+  <div class="stat-card"><div class="stat-label">За 7 дней</div><div class="stat-value">${doneWeek}</div><div class="stat-sub">выполнено</div></div>
+</div>`
+        if (highPend.length) {
+          html += `<div class="section-label">🔴 Высокий приоритет — ${highPend.length} ${pluralTasks(highPend.length)}</div>`
+          html += highPend.map(t => {
+            const od = isOverdue(t.dueDate)
+            const ds = t.dueDate ? formatDate(t.dueDate) : ''
+            return `<div class="habit-stat-row">
+  <div class="hsrow-emoji">🔴</div>
+  <div class="hsrow-info">
+    <div class="hsrow-name">${escHtml(t.title)}</div>
+    ${ds ? `<div class="hsrow-sub" style="${od?'color:var(--danger)':''}">📅 ${escHtml(ds)}</div>` : ''}
+  </div>
+</div>`
+          }).join('')
+        }
+      }
+
+      if (!state.habits.length && !state.tasks.length) {
+        html += `<div class="empty" style="padding-top:24px"><div class="empty-icon">📊</div><div class="empty-text">Нет данных</div><div class="empty-sub">Добавьте привычки и дела</div></div>`
+      }
+
+      // Настройки: уведомления
+      html += `<div class="stats-section-title">⚙️ Настройки</div>
+<div class="settings-card">
+  <div class="toggle-row">
+    <div class="toggle-info">
+      <div class="toggle-title">Напоминание каждый день</div>
+      <div class="toggle-sub">В 22:00 МСК — заполнить дневник привычек</div>
+    </div>
+    <button class="toggle ${state.notificationsEnabled?'on':''}" id="notifToggle" onclick="toggleNotifications()"></button>
+  </div>
+</div>
+<div class="settings-note">Для работы уведомлений необходимо написать боту /start в Telegram</div>`
+
+      c.innerHTML = html
+    }
+
+    // ────────────────────────────────────────────
+    // Действия — привычки
     // ────────────────────────────────────────────
     function toggleToday(hid) {
       const today = todayKey()
       if (!state.completions[today]) state.completions[today] = {}
       const was = state.completions[today][hid]
       state.completions[today][hid] = !was
-      scheduleSave()
-      render()
-      if (!was && tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light')
+      scheduleSave(); render()
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred(was ? 'light' : 'medium')
     }
-
     function askDelete(hid) {
-      document.querySelectorAll('.delete-confirm.visible').forEach(el => {
-        if (el.dataset.hid !== hid) el.classList.remove('visible')
-      })
+      document.querySelectorAll('.delete-confirm.visible').forEach(el => { if (el.dataset.hid !== hid) el.classList.remove('visible') })
       document.querySelector(`.delete-confirm[data-hid="${hid}"]`)?.classList.toggle('visible')
     }
-    function cancelDelete(hid) {
-      document.querySelector(`.delete-confirm[data-hid="${hid}"]`)?.classList.remove('visible')
-    }
+    function cancelDelete(hid)  { document.querySelector(`.delete-confirm[data-hid="${hid}"]`)?.classList.remove('visible') }
     function confirmDelete(hid) {
       state.habits = state.habits.filter(h => h.id !== hid)
-      scheduleSave()
-      render()
+      scheduleSave(); render()
       if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning')
     }
 
     // ────────────────────────────────────────────
-    // Статистика
+    // Действия — дела
+    // ────────────────────────────────────────────
+    function toggleTask(tid) {
+      const t = state.tasks.find(t => t.id === tid); if (!t) return
+      t.done = !t.done
+      t.doneAt = t.done ? new Date().toISOString() : null
+      scheduleSave(); renderTasks()
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred(t.done ? 'medium' : 'light')
+    }
+    function askDeleteTask(tid) {
+      document.querySelectorAll('.delete-confirm.visible').forEach(el => { if (el.dataset.tid !== tid) el.classList.remove('visible') })
+      document.querySelector(`.delete-confirm[data-tid="${tid}"]`)?.classList.toggle('visible')
+    }
+    function cancelDeleteTask(tid)  { document.querySelector(`.delete-confirm[data-tid="${tid}"]`)?.classList.remove('visible') }
+    function confirmDeleteTask(tid) {
+      state.tasks = state.tasks.filter(t => t.id !== tid)
+      scheduleSave(); renderTasks()
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning')
+    }
+    function setTaskFilter(f) { taskFilter = f; renderTasks() }
+
+    // ────────────────────────────────────────────
+    // Уведомления
+    // ────────────────────────────────────────────
+    function toggleNotifications() {
+      state.notificationsEnabled = !state.notificationsEnabled
+      document.getElementById('notifToggle')?.classList.toggle('on', state.notificationsEnabled)
+      scheduleSave()
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light')
+    }
+
+    // ────────────────────────────────────────────
+    // Статистика — расчёты
     // ────────────────────────────────────────────
     function getStreak(hid) {
       let streak = 0, i = 0
@@ -929,171 +857,69 @@
     }
 
     // ────────────────────────────────────────────
-    // Таб
+    // Модал — привычка
     // ────────────────────────────────────────────
-    let currentTab = 'today', selectedEmoji = EMOJIS[0]
-
-    function switchTab(tab) {
-      currentTab = tab
-      document.getElementById('tab-today').classList.toggle('active', tab === 'today')
-      document.getElementById('tab-stats').classList.toggle('active', tab === 'stats')
-      document.getElementById('fabBtn').style.display = tab === 'today' ? 'flex' : 'none'
-      render()
-    }
-
-    // ────────────────────────────────────────────
-    // Рендер
-    // ────────────────────────────────────────────
-    function render() { updateHeader(); currentTab === 'today' ? renderToday() : renderStats() }
-
-    function updateHeader() {
-      const names = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
-      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-      const d = new Date()
-      document.getElementById('dateBadge').textContent = `${names[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`
-      const total = state.habits.length
-      const done = state.habits.filter(h => isComplete(h.id, todayKey())).length
-      const pct = total ? Math.round(done / total * 100) : 0
-      document.getElementById('progressFill').style.width = pct + '%'
-      document.getElementById('progressText').textContent = `${done} из ${total} выполнено`
-    }
-
-    function renderToday() {
-      const c = document.getElementById('mainContent')
-      if (!state.habits.length) {
-        c.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div><div class="empty-text">Нет привычек</div><div class="empty-sub">Нажмите + чтобы добавить первую привычку</div></div>`
-        return
-      }
-      const today = todayKey()
-      const pending = state.habits.filter(h => !isComplete(h.id, today))
-      const done = state.habits.filter(h => isComplete(h.id, today))
-      let html = ''
-      if (pending.length) { html += `<div class="section-label">Осталось ${pending.length}</div>` + pending.map(habitCard).join('') }
-      if (done.length) { html += `<div class="section-label">Выполнено ✓</div>` + done.map(habitCard).join('') }
-      c.innerHTML = html
-    }
-
-    const DAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
-
-    function habitCard(h) {
-      const today = todayKey()
-      const doneToday = isComplete(h.id, today)
-      const streak = getStreak(h.id)
-      const total = getTotalDays(h.id)
-      let strip = ''
-      for (let i = 6; i >= 0; i--) {
-        const day = dateKey(-i)
-        const d = new Date(); d.setDate(d.getDate() - i)
-        const lbl = DAY_SHORT[d.getDay()]
-        const isToday = i === 0
-        const done = isComplete(h.id, day)
-        const cls = isToday ? (done ? 'today-done' : 'today-empty') : (done ? 'done' : '')
-        strip += `<div class="wday"><div class="wday-label">${lbl}</div><div class="wday-cell ${cls}"></div></div>`
-      }
-      return `<div class="habit-card">
-    <div class="habit-main">
-      <div class="habit-emoji">${h.emoji}</div>
-      <div class="habit-info">
-        <div class="habit-name">${escHtml(h.name)}</div>
-        <div class="habit-meta">
-          ${streak > 0 ? `<div class="streak-badge">🔥 ${streak}</div>` : ''}
-          <div class="days-label">${total} ${pluralDays(total)} всего</div>
-        </div>
-      </div>
-      <button class="check-btn ${doneToday ? 'done' : ''}" onclick="toggleToday('${h.id}')">
-        ${doneToday ? '✓' : ''}
-      </button>
-    </div>
-    <div class="week-strip">${strip}</div>
-    <div class="delete-row">
-      <div class="delete-initial"><button class="btn-del-trigger" onclick="askDelete('${h.id}')">🗑 Удалить</button></div>
-      <div class="delete-confirm" data-hid="${h.id}">
-        <div class="del-confirm-text">Удалить привычку?</div>
-        <div class="del-btns">
-          <button class="del-no"  onclick="cancelDelete('${h.id}')">Нет</button>
-          <button class="del-yes" onclick="confirmDelete('${h.id}')">Удалить</button>
-        </div>
-      </div>
-    </div>
-  </div>`
-    }
-
-    function renderStats() {
-      const c = document.getElementById('mainContent')
-      if (!state.habits.length) {
-        c.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Нет данных</div><div class="empty-sub">Добавьте привычки во вкладке «Сегодня»</div></div>`
-        return
-      }
-      const today = todayKey()
-      const todayDone = state.habits.filter(h => isComplete(h.id, today)).length
-      const best = Math.max(...state.habits.map(h => getStreak(h.id)), 0)
-      const allTime = Object.values(state.completions).reduce((s, d) => s + Object.values(d).filter(Boolean).length, 0)
-      let html = `<div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-value">${todayDone}/${state.habits.length}</div><div class="stat-sub">привычек</div></div>
-    <div class="stat-card"><div class="stat-label">Лучшая серия</div><div class="stat-value">🔥${best}</div><div class="stat-sub">${pluralDays(best)} подряд</div></div>
-    <div class="stat-card"><div class="stat-label">Всего выполнено</div><div class="stat-value">${allTime}</div><div class="stat-sub">раз</div></div>
-    <div class="stat-card"><div class="stat-label">Привычек</div><div class="stat-value">${state.habits.length}</div><div class="stat-sub">активных</div></div>
-  </div><div class="section-label">Прогресс по привычкам</div>`
-      html += [...state.habits].sort((a, b) => getCompletionRate(b.id) - getCompletionRate(a.id)).map(h => {
-        const pct = getCompletionRate(h.id)
-        return `<div class="habit-stat-row">
-      <div class="hsrow-emoji">${h.emoji}</div>
-      <div class="hsrow-info">
-        <div class="hsrow-name">${escHtml(h.name)}</div>
-        <div class="hsrow-sub">🔥${getStreak(h.id)} серия · ${getTotalDays(h.id)} ${pluralDays(getTotalDays(h.id))}</div>
-        <div class="hsrow-bar-wrap"><div class="hsrow-bar-fill" style="width:${pct}%"></div></div>
-      </div>
-      <div class="hsrow-pct">${pct}%</div>
-    </div>`
-      }).join('')
-      c.innerHTML = html
-    }
-
-    // ────────────────────────────────────────────
-    // Модал
-    // ────────────────────────────────────────────
-    function openModal() {
+    function openHabitModal() {
       selectedEmoji = EMOJIS[0]
       document.getElementById('habitName').value = ''
       buildEmojiGrid()
-      document.getElementById('overlay').classList.add('open')
+      document.getElementById('habitOverlay').classList.add('open')
       setTimeout(() => document.getElementById('habitName').focus(), 350)
     }
-    function closeModal() { document.getElementById('overlay').classList.remove('open') }
-    function closeModalOnBg(e) { if (e.target === document.getElementById('overlay')) closeModal() }
+    function closeHabitModal()          { document.getElementById('habitOverlay').classList.remove('open') }
+    function closeHabitModalOnBg(e)     { if (e.target === document.getElementById('habitOverlay')) closeHabitModal() }
     function buildEmojiGrid() {
       document.getElementById('emojiGrid').innerHTML = EMOJIS.map(em =>
-        `<div class="emoji-pick ${em === selectedEmoji ? 'selected' : ''}" onclick="selectEmoji('${em}')">${em}</div>`
+        `<div class="emoji-pick ${em===selectedEmoji?'selected':''}" onclick="selectEmoji('${em}')">${em}</div>`
       ).join('')
     }
     function selectEmoji(em) { selectedEmoji = em; buildEmojiGrid() }
-
     function saveHabit() {
       const name = document.getElementById('habitName').value.trim()
       if (!name) { document.getElementById('habitName').focus(); return }
-      state.habits.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, emoji: selectedEmoji, createdAt: new Date().toISOString() })
-      scheduleSave()
-      closeModal()
-      render()
+      state.habits.push({ id: genId(), name, emoji: selectedEmoji, createdAt: new Date().toISOString() })
+      scheduleSave(); closeHabitModal(); render()
       if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success')
     }
 
     // ────────────────────────────────────────────
-    // Утилиты
+    // Модал — дело
     // ────────────────────────────────────────────
-    function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') }
-    function pluralDays(n) {
-      if (n % 100 >= 11 && n % 100 <= 14) return 'дней'
-      const r = n % 10; return r === 1 ? 'день' : r >= 2 && r <= 4 ? 'дня' : 'дней'
+    function openTaskModal() {
+      selectedPriority = 'medium'
+      document.getElementById('taskTitle').value = ''
+      document.getElementById('taskDesc').value  = ''
+      document.getElementById('taskDueDate').value = ''
+      updatePrioButtons()
+      document.getElementById('taskOverlay').classList.add('open')
+      setTimeout(() => document.getElementById('taskTitle').focus(), 350)
+    }
+    function closeTaskModal()        { document.getElementById('taskOverlay').classList.remove('open') }
+    function closeTaskModalOnBg(e)   { if (e.target === document.getElementById('taskOverlay')) closeTaskModal() }
+    function selectPrio(p)           { selectedPriority = p; updatePrioButtons() }
+    function updatePrioButtons() {
+      document.querySelectorAll('.prio-option').forEach(btn => {
+        btn.className = 'prio-option' + (btn.dataset.p === selectedPriority ? ` sel-${btn.dataset.p}` : '')
+      })
+    }
+    function saveTask() {
+      const title = document.getElementById('taskTitle').value.trim()
+      if (!title) { document.getElementById('taskTitle').focus(); return }
+      const desc    = document.getElementById('taskDesc').value.trim()
+      const dueDate = document.getElementById('taskDueDate').value || null
+      state.tasks.push({ id: genId(), title, desc, priority: selectedPriority, dueDate, done: false, doneAt: null, createdAt: new Date().toISOString() })
+      scheduleSave(); closeTaskModal(); render()
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success')
     }
 
     // ────────────────────────────────────────────
     // Старт
     // ────────────────────────────────────────────
-    updateHeader()   // дату показываем сразу
-    loadFromServer() // загружаем данные, потом рендерим
+    updateHeader()
+    loadFromServer()
 
-    document.getElementById('habitName').addEventListener('keydown', e => { if (e.key === 'Enter') saveHabit() });
+    document.getElementById('habitName').addEventListener('keydown', e => { if (e.key === 'Enter') saveHabit() })
+    document.getElementById('taskTitle').addEventListener('keydown', e => { if (e.key === 'Enter') saveTask() })
   </script>
 </body>
 
